@@ -223,6 +223,24 @@
   #coverEq span:nth-child(4) { animation-delay: .1s; }
   @keyframes eq { from { height: 9px; } to { height: 56px; } }
 
+  /* the 3-2-1 countdown before each song */
+  #countNum {
+    display: none;
+    font-size: 84px;
+    font-weight: bold;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 6px 0 rgba(0,0,0,.22), 0 0 26px rgba(255,230,128,.7);
+  }
+  #songCard.counting #countNum { display: block; }
+  #songCard.counting #coverIcon { display: none; }
+  #countNum.pop { animation: countPop .55s ease; }
+  @keyframes countPop {
+    0%   { transform: scale(.45); opacity: .15; }
+    45%  { transform: scale(1.18); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
   #answers {
     display: flex;
     flex-direction: row;
@@ -476,7 +494,8 @@
     <div id="songCard">
       <div id="coverEq"><span></span><span></span><span></span><span></span></div>
       <div id="coverIcon">▶</div>
-      <div id="coverText">Tap to hear the song!</div>
+      <div id="countNum">3</div>
+      <div id="coverText">Get ready…</div>
     </div>
     <div id="answers"></div>
     <div id="micRow">
@@ -510,9 +529,9 @@
     <p>
       Each round plays the official Disney recording — a 30-second preview
       straight from Apple's music store, so the real voices sing (internet
-      needed). The child taps the song card to hear it, and taps it again to
-      hear it over. If a song won't play on this device, add your own clip of
-      that song here instead (no internet, no ads).
+      needed). Every song starts by itself after a quick 3-2-1 countdown; tap
+      the song card to hear it over. If a song won't play on this device, add
+      your own clip of that song here instead (no internet, no ads).
     </p>
     <div id="panelRows"></div>
     <div id="panelStatus" style="margin-top:12px;font-size:13px;color:#8a6a9c;"></div>
@@ -757,49 +776,84 @@ const PRAISE_GENTLE = ["Good try!", "So close!", "Nice thinking!"];
 const songCardEl = document.getElementById("songCard");
 const coverIconEl = document.getElementById("coverIcon");
 const coverTextEl = document.getElementById("coverText");
-
-let currentPreview = null;
+const countNumEl = document.getElementById("countNum");
 
 function setStatus(t) {
   const el = document.getElementById("panelStatus");
   if (el) el.textContent = t;
 }
 
+/* One player for every song. A browser only lets a media element start
+   without a fresh touch if that same element was started during one, so the
+   element is primed (silently) by the tap that begins the round and then
+   turned up when the countdown ends. */
+const previewEl = new Audio();
+previewEl.preload = "auto";
+let previewSong = null;
+let previewSrc = "";
+
 function stopPreview() {
-  if (currentPreview) {
-    try { currentPreview.pause(); } catch (e) {}
-    currentPreview = null;
-  }
+  try { previewEl.pause(); } catch (e) {}
+  previewSong = null;
+}
+
+function primePreview(song) {
+  if (!song || !song.preview || navigator.onLine === false) return;
+  if (clipURLs[song.name]) return;
+  try {
+    previewEl.muted = true;
+    if (previewSrc !== song.preview) {
+      previewSrc = song.preview;
+      previewEl.src = song.preview;
+      previewEl.load();
+    } else {
+      previewEl.currentTime = 0;
+    }
+    const p = previewEl.play();
+    if (p && p.catch) p.catch(function () {});
+  } catch (e) {}
 }
 
 function playPreview(song) {
+  previewSong = song;
   setPlaying(true);
-  const a = new Audio(song.preview);
-  a.preload = "auto";
-  currentPreview = a;
+  try {
+    previewEl.muted = false;
+    if (previewSrc !== song.preview) {
+      previewSrc = song.preview;
+      previewEl.src = song.preview;
+    }
+    previewEl.currentTime = 0;
+  } catch (e) {}
 
-  const done = function () {
-    if (currentPreview !== a) return;
-    currentPreview = null;
-    setPlaying(false);
-  };
-  a.addEventListener("ended", done);
-  a.addEventListener("error", function () {
-    if (currentPreview !== a) return;
-    done();
-    setStatus("This device couldn't fetch the song — playing the tune version instead. Check the internet connection, or add your own clip below.");
-    playSynthSong(song);
-  });
-
-  const p = a.play();
+  const p = previewEl.play();
   if (p && p.catch) {
     p.catch(function () {
-      if (currentPreview !== a) return;
-      done();
-      playSynthSong(song);
+      if (previewSong !== song) return;
+      // the browser refused the delayed start: let the child tap once instead
+      previewSong = null;
+      setPlaying(false);
+      songCardEl.classList.add("ready");
+      coverTextEl.textContent = "Tap to hear the song!";
     });
   }
 }
+
+previewEl.addEventListener("ended", function () {
+  if (!previewSong) return;
+  previewSong = null;
+  setPlaying(false);
+  songCardEl.classList.add("ready");
+});
+
+previewEl.addEventListener("error", function () {
+  if (!previewSong) return;
+  const song = previewSong;
+  previewSong = null;
+  setPlaying(false);
+  setStatus("This device couldn't fetch the song — playing the tune version instead. Check the internet connection, or add your own clip below.");
+  playSynthSong(song);
+});
 
 /* ================= audio engine (piano fallback) ================= */
 let ctx = null;
@@ -1150,12 +1204,65 @@ function shuffle(a) {
 function setPlaying(v) {
   playing = v;
   songCardEl.classList.toggle("playing", v);
-  if (v) songCardEl.classList.remove("ready");
+  if (v) {
+    songCardEl.classList.remove("ready");
+    songCardEl.classList.remove("counting");
+  }
   coverIconEl.textContent = "▶";
   coverTextEl.textContent = v ? "Listen… 🎵" : "Tap to hear the song!";
 }
 
+let countTimer = null;
+let countTicker = null;
+
+function stopCountdown() {
+  if (countTimer) { clearTimeout(countTimer); countTimer = null; }
+  if (countTicker) { clearInterval(countTicker); countTicker = null; }
+  songCardEl.classList.remove("counting");
+}
+
+function showCountNumber(n) {
+  countNumEl.textContent = n;
+  countNumEl.classList.remove("pop");
+  void countNumEl.offsetWidth;
+  countNumEl.classList.add("pop");
+}
+
+function countBeep(n) {
+  if (!ctx) return;
+  try {
+    tone(ctx.destination, n === 1 ? 880 : 660, ctx.currentTime + 0.02, 0.14, 0.08, "sine");
+  } catch (e) {}
+}
+
+// three friendly beats, then the song starts by itself — no extra tap
+function startCountdown() {
+  stopAllAudio();
+  ensureAudio();
+  try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
+  const song = order[roundIndex];
+  if (!song) return;
+
+  // start the song silently inside this tap, so the sound is allowed in a moment
+  primePreview(song);
+
+  songCardEl.classList.add("counting");
+  coverTextEl.textContent = "Get ready…";
+  let n = 3;
+  showCountNumber(n);
+  countBeep(n);
+  countTicker = setInterval(function () {
+    n--;
+    if (n > 0) { showCountNumber(n); countBeep(n); }
+  }, 1000);
+  countTimer = setTimeout(function () {
+    stopCountdown();
+    playCurrentSong();
+  }, 3000);
+}
+
 function stopAllAudio() {
+  stopCountdown();
   stopClip();
   stopSynth();
   stopPreview();
@@ -1218,11 +1325,9 @@ function showRound() {
 
   updateTop();
 
-  // the song waits for a tap (browsers need a touch to start sound with it)
-  stopAllAudio();
-  songCardEl.classList.add("ready");
+  // count 3-2-1, then the song plays by itself
   coverIconEl.textContent = "▶";
-  coverTextEl.textContent = "Tap to hear the song!";
+  startCountdown();
 }
 
 function playCurrentSong() {
@@ -1264,8 +1369,8 @@ function buttonFor(name) {
 }
 
 function choose(opt, byVoice) {
-  // tapping an answer stops the song, so the child can think and answer
-  if (playing) stopAllAudio();
+  // tapping an answer stops the song (or the countdown), so the child can answer
+  stopAllAudio();
   const song = order[roundIndex];
 
   if (opt.name === song.name) {
@@ -1412,7 +1517,7 @@ function normalize(s) {
 }
 
 function handleVoice(transcript) {
-  if (playing) stopAllAudio();
+  stopAllAudio();
   const text = normalize(transcript);
   if (!text) return;
   let matched = null;
@@ -1493,13 +1598,13 @@ document.getElementById("againBtn").addEventListener("click", function () {
   showRound();
 });
 songCardEl.addEventListener("click", function () {
-  // first tap starts the song; tapping again starts it over
-  playCurrentSong();
+  // tapping the card starts the 3-2-1 over again
+  startCountdown();
 });
 fbNext.addEventListener("click", function () {
   const mode = fbNext.dataset.mode;
   feedback.classList.remove("show");
-  if (mode === "replay") playCurrentSong();
+  if (mode === "replay") startCountdown();
   else nextRound();
 });
 
