@@ -1913,10 +1913,10 @@ function countBeep(n) {
   } catch (e) {}
 }
 
-// The voice cue plays first, but it never holds the game hostage:
-// after 3 seconds the 3-2-1 starts anyway (iOS speech can be slow, muted
-// or wedged). The voice is never cancelled, so it just finishes gently
-// over the first beat. Tapping the card skips straight to the music.
+// The 3-2-1 starts right away and the spoken cue rides along on top of it.
+// The voice is never cancelled, so it finishes over the first beat, and
+// nothing the voice says can delay the music. Tapping the card during the
+// intro skips whatever is left of the cue.
 function startCountdown() {
   stopAllAudio();
   ensureAudio();
@@ -1928,7 +1928,7 @@ function startCountdown() {
 
   songCardEl.classList.add("ready");
   coverIconEl.textContent = "▶";
-  coverTextEl.textContent = "Tap for music!";
+  coverTextEl.textContent = "Get ready…";
 
   let begun = false;
   const myCue = ++cueSeq;
@@ -1953,9 +1953,9 @@ function startCountdown() {
   };
   currentBeginTicks = beginTicks;
 
-  speak("Song " + (roundIndex + 1) + ". Who's singing?", beginTicks);
-  // hard cap: even if the speech engine never answers, music starts in 3s
-  cueTimer = setTimeout(beginTicks, 3000);
+  // countdown starts right away; the spoken cue rides along on top
+  cueTimer = setTimeout(beginTicks, 400);
+  speak("Song " + (roundIndex + 1) + ". Who's singing?");
 }
 
 function stopAllAudio() {
@@ -2131,7 +2131,7 @@ function solveRound() {
   fbNext.textContent = roundIndex === order.length - 1 ? "See Your Stars! 🏆" : "Keep Going! ➜";
   fbNext.dataset.mode = "next";
   feedback.classList.add("show");
-  speak(praise + " It's " + song.name + "! That was " + song.song.replace(/\s*\(.*\)\s*$/, "") + "!");
+  speak(praise + " It's " + song.name + "!");
 }
 
 function nextRound() {
