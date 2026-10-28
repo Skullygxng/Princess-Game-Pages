@@ -1,0 +1,18 @@
+{
+  "name": "Princess Game",
+  "short_name": "Princess Game",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffe9f2",
+  "theme_color": "#8b5cf6",
+  "icons": [
+    {
+      "src": "assets/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
