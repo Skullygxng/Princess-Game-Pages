@@ -312,6 +312,11 @@
     40%  { transform: scale(1.08); }
     100% { transform: scale(1); }
   }
+  .answer.invite { animation: inviteBounce 1.2s ease-in-out infinite; }
+  @keyframes inviteBounce {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.04); }
+  }
 
   /* ---------- feedback overlay ---------- */
   #feedback {
@@ -1368,6 +1373,24 @@ function stopPreview() {
   previewSong = null;
 }
 
+/* Songs are capped at 15 seconds: enough to guess, never a long wait.
+   When a song finishes (cap or natural end), Twinkle asks "Who is it?"
+   and the answer cards gently bounce to invite the tap. */
+const SONG_CAP_MS = 15000;
+let songCapTimer = null;
+
+function pulseAnswers() {
+  Array.prototype.forEach.call(answersEl.children, function (b) {
+    b.classList.add("invite");
+  });
+}
+
+function songFinished() {
+  setPlaying(false);
+  pulseAnswers();
+  speak("Who is it?");
+}
+
 function primePreview(song) {
   if (!song || !song.preview || navigator.onLine === false) return;
   if (clipURLs[song.name]) return;
@@ -1413,7 +1436,7 @@ function playPreview(song) {
 previewEl.addEventListener("ended", function () {
   if (!previewSong) return;
   previewSong = null;
-  setPlaying(false);
+  songFinished();
   songCardEl.classList.add("ready");
 });
 
@@ -1576,7 +1599,7 @@ function playSynthSong(song) {
   }
 
   const end = t0 + beats * beat + 0.25;
-  synthTimer = setTimeout(function () { setPlaying(false); }, (end - ctx.currentTime) * 1000);
+  synthTimer = setTimeout(function () { songFinished(); }, (end - ctx.currentTime) * 1000);
 }
 
 function fanfare() {
@@ -1885,7 +1908,6 @@ function setPlaying(v) {
 }
 
 let cueTimer = null;
-let currentBeginTicks = null;
 let countTimer = null;
 let countTicker = null;
 let cueSeq = 0;
@@ -1895,7 +1917,6 @@ function stopCountdown() {
   if (cueTimer) { clearTimeout(cueTimer); cueTimer = null; }
   if (countTimer) { clearTimeout(countTimer); countTimer = null; }
   if (countTicker) { clearInterval(countTicker); countTicker = null; }
-  currentBeginTicks = null;
   songCardEl.classList.remove("counting");
 }
 
@@ -1913,10 +1934,9 @@ function countBeep(n) {
   } catch (e) {}
 }
 
-// The 3-2-1 starts right away and the spoken cue rides along on top of it.
-// The voice is never cancelled, so it finishes over the first beat, and
-// nothing the voice says can delay the music. Tapping the card during the
-// intro skips whatever is left of the cue.
+// Tap → the 3-2-1 starts right away (music in about 3 seconds), while the
+// spoken cue rides along on top. The voice is never cancelled and never
+// delays the music. Tapping the card mid-song plays it again from the top.
 function startCountdown() {
   stopAllAudio();
   ensureAudio();
@@ -1926,41 +1946,27 @@ function startCountdown() {
   // start the song silently inside this tap, so the sound is allowed in a moment
   primePreview(song);
 
-  songCardEl.classList.add("ready");
+  songCardEl.classList.add("counting");
   coverIconEl.textContent = "▶";
-  coverTextEl.textContent = "Get ready…";
+  let n = 3;
+  showCountNumber(n);
+  countBeep(n);
+  countTicker = setInterval(function () {
+    n--;
+    if (n > 0) { showCountNumber(n); countBeep(n); }
+  }, 1000);
+  countTimer = setTimeout(function () {
+    stopCountdown();
+    playCurrentSong();
+  }, 3000);
 
-  let begun = false;
-  const myCue = ++cueSeq;
-  const beginTicks = function () {
-    if (begun || myCue !== cueSeq) return;
-    begun = true;
-    if (cueTimer) { clearTimeout(cueTimer); cueTimer = null; }
-
-    songCardEl.classList.remove("ready");
-    songCardEl.classList.add("counting");
-    let n = 3;
-    showCountNumber(n);
-    countBeep(n);
-    countTicker = setInterval(function () {
-      n--;
-      if (n > 0) { showCountNumber(n); countBeep(n); }
-    }, 1000);
-    countTimer = setTimeout(function () {
-      stopCountdown();
-      playCurrentSong();
-    }, 3000);
-  };
-  currentBeginTicks = beginTicks;
-
-  // countdown starts right away; the spoken cue rides along on top
-  cueTimer = setTimeout(beginTicks, 400);
   speak("Song " + (roundIndex + 1) + ". Who's singing?");
 }
 
 function stopAllAudio() {
   stopCountdown();
   speakStopAll();
+  if (songCapTimer) { clearTimeout(songCapTimer); songCapTimer = null; }
   stopClip();
   stopSynth();
   stopPreview();
@@ -2032,6 +2038,12 @@ function showRound() {
 
 function playCurrentSong() {
   // the spoken cue finished before this runs, so nothing needs cancelling here
+  if (songCapTimer) clearTimeout(songCapTimer);
+  songCapTimer = setTimeout(function () {
+    if (!playing) return;
+    stopAllAudio();
+    songFinished();
+  }, SONG_CAP_MS);
   stopClip();
   stopSynth();
   stopPreview();
@@ -2043,12 +2055,23 @@ function playCurrentSong() {
     setPlaying(true);
     const a = new Audio(clipURLs[song.name]);
     currentClip = a;
-    const done = function () {
-      if (currentClip === a) { currentClip = null; setPlaying(false); }
+    a.onended = function () {
+      if (currentClip !== a) return;
+      currentClip = null;
+      songFinished();
     };
-    a.onended = done;
-    a.onerror = done;
-    a.play().catch(function () { setPlaying(false); playSynthSong(song); });
+    a.onerror = function () {
+      if (currentClip !== a) return;
+      currentClip = null;
+      setPlaying(false);
+      playSynthSong(song);
+    };
+    a.play().catch(function () {
+      if (currentClip !== a) return;
+      currentClip = null;
+      setPlaying(false);
+      playSynthSong(song);
+    });
     return;
   }
 
@@ -2072,6 +2095,9 @@ function buttonFor(name) {
 function choose(opt) {
   // tapping an answer stops the song (or the countdown), so the child can answer
   stopAllAudio();
+  Array.prototype.forEach.call(answersEl.children, function (b) {
+    b.classList.remove("invite");
+  });
   const song = order[roundIndex];
 
   if (opt.name === song.name) {
@@ -2243,10 +2269,8 @@ document.getElementById("againBtn").addEventListener("click", function () {
   showRound();
 });
 songCardEl.addEventListener("click", function () {
-  // mid-song: play it again from the top
+  // mid-song: play it again from the top. Otherwise restart the countdown.
   if (playing) { playCurrentSong(); return; }
-  // waiting on the voice cue: skip it and count down right now
-  if (currentBeginTicks) { currentBeginTicks(); return; }
   startCountdown();
 });
 fbNext.addEventListener("click", function () {
