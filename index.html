@@ -504,8 +504,8 @@
   <div id="panelCard">
     <h2>For grown-ups ⚙️</h2>
     <p>
-      Each round plays the official recording — a 30-second preview straight
-      from Apple's music store, so the real voices sing (internet needed). A
+      Each round plays the official recording — the first 15 seconds of
+      Apple's music-store preview, so the real voices sing (internet needed). A
       voice says the song number, then the 3-2-1 countdown, then the song plays
       by itself. Tap 🖼 picture on any character to give them your own artwork,
       or 🎵 clip to replace their song (no internet needed for your own).
@@ -521,8 +521,8 @@
 "use strict";
 
 /* ================= chibi artwork =================
-   Real chibi images live in assets/<Name>.png. The hand-drawn
-   SVGs below are only used if an image file ever fails to load. */
+   Every character has a picture in assets/<Name>-s.webp. These hand-drawn
+   SVGs are only used if a picture can't load at all. */
 function face(eyes, mouthY, blushColor) {
   return '' +
     '<circle cx="51" cy="' + eyes + '" r="4.2" fill="#3a4a6b"/>' +
@@ -927,6 +927,7 @@ const SVGS = {
 
 // characters that have a picture file in assets/ (anything else is drawn in-page)
 const PNG_ART = {
+  Elsa: 1, Ariel: 1, Simba: 1, Woody: 1,
   Moana: 1, Olaf: 1, Cinderella: 1, Aladdin: 1,
   Rapunzel: 1, Mirabel: 1, Anna: 1, Belle: 1, Jasmine: 1, Tiana: 1, Aurora: 1,
   "Snow White": 1, Mulan: 1, Pocahontas: 1,
@@ -2203,7 +2204,7 @@ function choose(opt) {
     const rightBtn = buttonFor(song.name);
     if (rightBtn) rightBtn.classList.add("glow");
     fbChar.innerHTML = charImg(song.name);
-  watchImages();
+    watchImages();
     fbTitle.textContent = "Now you know!";
     fbTitle.style.color = "#2f9e44";
     fbSub.textContent = "It's " + song.name + "! " + song.clue;
