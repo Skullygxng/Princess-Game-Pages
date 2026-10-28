@@ -1,0 +1,4 @@
+# the public copy published to GitHub Pages (its own repository)
+publish/
+
+.DS_Store
