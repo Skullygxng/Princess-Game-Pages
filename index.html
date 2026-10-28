@@ -31,22 +31,6 @@
     overflow: hidden;
   }
 
-  /* floating music notes in the background */
-  .float-note {
-    position: fixed;
-    bottom: -60px;
-    font-size: 28px;
-    color: #b48cf2;
-    opacity: .25;
-    pointer-events: none;
-    z-index: 0;
-    animation: rise linear infinite;
-  }
-  @keyframes rise {
-    from { transform: translateY(0) rotate(-10deg); }
-    to   { transform: translateY(-110vh) rotate(20deg); }
-  }
-
   #app {
     width: 100%;
     max-width: 480px;
@@ -340,8 +324,7 @@
     justify-content: center;
     text-align: center;
     gap: 10px;
-    background: rgba(255,255,255,.88);
-    backdrop-filter: blur(4px);
+    background: rgba(255,255,255,.95);
     z-index: 10;
     padding: 30px;
   }
@@ -745,17 +728,24 @@ const PNG_ART = {
 
 function charImg(name) {
   if (picURLs[name]) {
-    return '<img src="' + picURLs[name] + '" alt="' + name + '">';
+    return '<img src="' + picURLs[name] + '" alt="' + name + '" decoding="async">';
   }
   if (!PNG_ART[name]) {
     return '<span class="charSVG">' + (SVGS[name] || "") + '</span>';
   }
-  return '<img src="assets/' + name + '.png" alt="' + name + '" data-char="' + name + '" onerror="charImgFail(this)">';
+  return '<img src="assets/' + name + '-s.webp" alt="' + name + '" data-char="' + name + '" decoding="async" onerror="charImgFail(this)">';
 }
 
 function charImgFail(img) {
+  const name = img.dataset.char;
+  // small picture missing? fall back to the full-size one, then to the drawing
+  if (name && img.dataset.big !== "1" && PNG_ART[name]) {
+    img.dataset.big = "1";
+    img.src = "assets/" + name + ".png";
+    return;
+  }
   const wrap = document.createElement("div");
-  wrap.innerHTML = SVGS[img.dataset.char] || "";
+  wrap.innerHTML = SVGS[name] || "";
   const svg = wrap.firstChild;
   if (svg) { svg.style.width = "100%"; svg.style.height = "100%"; img.replaceWith(svg); }
   else img.style.display = "none";
@@ -1296,19 +1286,6 @@ function tickConfetti() {
 }
 
 /* ================= floating background notes ================= */
-(function () {
-  const glyphs = ["♪", "♫", "♩", "🎵"];
-  for (let i = 0; i < 10; i++) {
-    const n = document.createElement("div");
-    n.className = "float-note";
-    n.textContent = glyphs[i % glyphs.length];
-    n.style.left = (4 + Math.random() * 92) + "%";
-    n.style.animationDuration = (7 + Math.random() * 7) + "s";
-    n.style.animationDelay = (-Math.random() * 10) + "s";
-    n.style.fontSize = (18 + Math.random() * 20) + "px";
-    document.body.appendChild(n);
-  }
-})();
 
 /* ================= own clips and pictures (added by grown-ups) ================= */
 let clipURLs = {};
