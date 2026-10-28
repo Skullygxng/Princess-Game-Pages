@@ -88,8 +88,8 @@
     margin-top: 6px;
   }
   .charRow img, .charRow svg {
-    width: clamp(40px, 11.5vw, 58px);
-    height: clamp(40px, 11.5vw, 58px);
+    width: clamp(34px, 10.5vw, 52px);
+    height: clamp(34px, 10.5vw, 52px);
     object-fit: contain;
     animation: bob 2.2s ease-in-out infinite;
   }
@@ -105,8 +105,8 @@
     50%      { transform: translateY(-12px) rotate(5deg); }
   }
   .charRow .charSVG {
-    width: clamp(40px, 11.5vw, 58px);
-    height: clamp(40px, 11.5vw, 58px);
+    width: clamp(34px, 10.5vw, 52px);
+    height: clamp(34px, 10.5vw, 52px);
     animation: bob 2.2s ease-in-out infinite;
   }
 
@@ -473,7 +473,6 @@
   <div id="gameScreen" class="hidden" style="display:flex;flex-direction:column;flex:1;">
     <div id="topbar">
       <button id="gearBtn" aria-label="Grown-ups settings">⚙️</button>
-      <div class="stars-row" id="starsRow">⭐ 0</div>
       <div id="dots"></div>
     </div>
     <div id="question">Who is singing this song?</div>
@@ -1361,7 +1360,6 @@ const gameScreen  = document.getElementById("gameScreen");
 const endScreen   = document.getElementById("endScreen");
 const feedback    = document.getElementById("feedback");
 const answersEl   = document.getElementById("answers");
-const starsRow    = document.getElementById("starsRow");
 const dotsEl      = document.getElementById("dots");
 const fbChar      = document.getElementById("fbChar");
 const fbTitle     = document.getElementById("fbTitle");
@@ -1432,8 +1430,8 @@ function startCountdown() {
   const song = order[roundIndex];
   if (!song) return;
 
-  // like the quiz video: "Song 3! Who's singing? Listen closely!"
-  speak("Song " + (roundIndex + 1) + "! Who's singing? Listen closely!");
+  // like the quiz video: "Song 3. Who's singing?"
+  speak("Song " + (roundIndex + 1) + ". Who's singing?");
 
   // start the song silently inside this tap, so the sound is allowed in a moment
   primePreview(song);
@@ -1462,7 +1460,6 @@ function stopAllAudio() {
 }
 
 function updateTop() {
-  starsRow.textContent = "⭐ " + stars;
   let d = "";
   order.forEach(function (s, i) {
     d += i < roundIndex ? "⭐" : (i === roundIndex ? "🔵" : "⚪");
