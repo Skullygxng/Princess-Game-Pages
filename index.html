@@ -408,12 +408,13 @@
   .panelRow {
     display: flex;
     align-items: center;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
     padding: 7px 0;
     border-bottom: 1px dashed #eee;
   }
   .panelRow img, .panelRow svg { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; }
-  .panelRow .pname { flex: 1; font-size: 17px; color: #4a3560; font-weight: bold; }
+  .panelRow .pname { flex: 1; min-width: 90px; font-size: 17px; color: #4a3560; font-weight: bold; }
   .panelRow .psong { display: block; font-size: 12px; color: #8a6a9c; font-weight: normal; }
   .panelRow .pstate { font-size: 13px; color: #2f9e44; }
   .panelRow label {
@@ -422,9 +423,9 @@
     background: #efe4ff;
     color: #6b4a86;
     font-family: inherit;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: bold;
-    padding: 8px 12px;
+    padding: 7px 9px;
     cursor: pointer;
   }
   .panelRow input[type=file] { display: none; }
@@ -508,11 +509,11 @@
   <div id="panelCard">
     <h2>For grown-ups ⚙️</h2>
     <p>
-      Each round plays the official Disney recording — a 30-second preview
-      straight from Apple's music store, so the real voices sing (internet
-      needed). Every song starts by itself after a quick 3-2-1 countdown; tap
-      the song card to hear it over. If a song won't play on this device, add
-      your own clip of that song here instead (no internet, no ads).
+      Each round plays the official recording — a 30-second preview straight
+      from Apple's music store, so the real voices sing (internet needed). A
+      voice says the song number, then the 3-2-1 countdown, then the song plays
+      by itself. Tap 🖼 picture on any character to give them your own artwork,
+      or 🎵 clip to replace their song (no internet needed for your own).
     </p>
     <div id="panelRows"></div>
     <div id="panelStatus" style="margin-top:12px;font-size:13px;color:#8a6a9c;"></div>
@@ -739,6 +740,9 @@ const SVGS = {
 const PNG_ART = { Elsa: 1, Moana: 1, Ariel: 1, Simba: 1, Woody: 1, Olaf: 1, Cinderella: 1, Aladdin: 1 };
 
 function charImg(name) {
+  if (picURLs[name]) {
+    return '<img src="' + picURLs[name] + '" alt="' + name + '">';
+  }
   if (!PNG_ART[name]) {
     return '<span class="charSVG">' + (SVGS[name] || "") + '</span>';
   }
@@ -1302,33 +1306,55 @@ function tickConfetti() {
   }
 })();
 
-/* ================= own clips (added by grown-ups) ================= */
+/* ================= own clips and pictures (added by grown-ups) ================= */
 let clipURLs = {};
 let currentClip = null;
+let picURLs = {};
 
 function openClipsDB() {
   return new Promise(function (res) {
     if (!("indexedDB" in window)) { res(null); return; }
-    const req = indexedDB.open("disneySongGuess", 1);
-    req.onupgradeneeded = function (e) { e.target.result.createObjectStore("clips"); };
+    const req = indexedDB.open("disneySongGuess", 2);
+    req.onupgradeneeded = function (e) {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains("clips")) db.createObjectStore("clips");
+      if (!db.objectStoreNames.contains("pics")) db.createObjectStore("pics");
+    };
     req.onsuccess = function (e) { res(e.target.result); };
     req.onerror = function () { res(null); };
   });
 }
 
-function loadClips() {
+function loadSaved() {
   openClipsDB().then(function (db) {
     if (!db) return;
-    const tx = db.transaction("clips", "readonly");
-    const r = tx.objectStore("clips").openCursor();
-    r.onsuccess = function (e) {
+    const tx = db.transaction(["clips", "pics"], "readonly");
+
+    const rc = tx.objectStore("clips").openCursor();
+    rc.onsuccess = function (e) {
       const c = e.target.result;
       if (c) {
         if (clipURLs[c.key]) URL.revokeObjectURL(clipURLs[c.key]);
         clipURLs[c.key] = URL.createObjectURL(c.value);
         c.continue();
-      } else {
-        renderPanelRows();
+      }
+    };
+
+    const rp = tx.objectStore("pics").openCursor();
+    rp.onsuccess = function (e) {
+      const c = e.target.result;
+      if (c) {
+        if (picURLs[c.key]) URL.revokeObjectURL(picURLs[c.key]);
+        picURLs[c.key] = URL.createObjectURL(c.value);
+        c.continue();
+      }
+    };
+
+    tx.oncomplete = function () {
+      renderPanelRows();
+      renderStartRow();
+      if (!feedback.classList.contains("show")) {
+        // answer tiles are rebuilt each round, so nothing else to refresh
       }
     };
   });
@@ -1343,6 +1369,20 @@ function saveClipFile(name, file) {
       if (clipURLs[name]) URL.revokeObjectURL(clipURLs[name]);
       clipURLs[name] = URL.createObjectURL(file);
       renderPanelRows();
+    };
+  });
+}
+
+function savePictureFile(name, file) {
+  openClipsDB().then(function (db) {
+    if (!db) return;
+    const tx = db.transaction("pics", "readwrite");
+    tx.objectStore("pics").put(file, name);
+    tx.oncomplete = function () {
+      if (picURLs[name]) URL.revokeObjectURL(picURLs[name]);
+      picURLs[name] = URL.createObjectURL(file);
+      renderPanelRows();
+      renderStartRow();
     };
   });
 }
@@ -1400,10 +1440,14 @@ function setPlaying(v) {
   coverTextEl.textContent = v ? "Listen… 🎵" : "Tap to hear the song!";
 }
 
+let cueTimer = null;
 let countTimer = null;
 let countTicker = null;
+let cueSeq = 0;
 
 function stopCountdown() {
+  cueSeq++;
+  if (cueTimer) { clearTimeout(cueTimer); cueTimer = null; }
   if (countTimer) { clearTimeout(countTimer); countTimer = null; }
   if (countTicker) { clearInterval(countTicker); countTicker = null; }
   songCardEl.classList.remove("counting");
@@ -1423,36 +1467,51 @@ function countBeep(n) {
   } catch (e) {}
 }
 
-// three friendly beats, then the song starts by itself — no extra tap
+// The voice says "Song 3. Who's singing?" FIRST, then the 3-2-1 beats run,
+// then the song plays: nothing overlaps and nothing gets cut off.
 function startCountdown() {
   stopAllAudio();
   ensureAudio();
   const song = order[roundIndex];
   if (!song) return;
 
-  // like the quiz video: "Song 3. Who's singing?"
-  speak("Song " + (roundIndex + 1) + ". Who's singing?");
-
   // start the song silently inside this tap, so the sound is allowed in a moment
   primePreview(song);
 
-  songCardEl.classList.add("counting");
+  songCardEl.classList.add("ready");
+  coverIconEl.textContent = "▶";
   coverTextEl.textContent = "Get ready…";
-  let n = 3;
-  showCountNumber(n);
-  countBeep(n);
-  countTicker = setInterval(function () {
-    n--;
-    if (n > 0) { showCountNumber(n); countBeep(n); }
-  }, 1000);
-  countTimer = setTimeout(function () {
-    stopCountdown();
-    playCurrentSong();
-  }, 3000);
+
+  let begun = false;
+  const myCue = ++cueSeq;
+  const beginTicks = function () {
+    if (begun || myCue !== cueSeq) return;
+    begun = true;
+    if (cueTimer) { clearTimeout(cueTimer); cueTimer = null; }
+
+    songCardEl.classList.remove("ready");
+    songCardEl.classList.add("counting");
+    let n = 3;
+    showCountNumber(n);
+    countBeep(n);
+    countTicker = setInterval(function () {
+      n--;
+      if (n > 0) { showCountNumber(n); countBeep(n); }
+    }, 1000);
+    countTimer = setTimeout(function () {
+      stopCountdown();
+      playCurrentSong();
+    }, 3000);
+  };
+
+  speak("Song " + (roundIndex + 1) + ". Who's singing?", beginTicks);
+  // if a browser never reports back about the voice, don't leave the card stuck
+  cueTimer = setTimeout(beginTicks, 4500);
 }
 
 function stopAllAudio() {
   stopCountdown();
+  try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
   stopClip();
   stopSynth();
   stopPreview();
@@ -1475,6 +1534,10 @@ function charRow(el, songs) {
     w.firstChild.style.display = "inline-block";
     el.appendChild(w.firstChild);
   });
+}
+
+function renderStartRow() {
+  charRow(document.getElementById("startChars"), shuffle(SONGS.slice()).slice(0, 8));
 }
 
 function startGame() {
@@ -1663,9 +1726,24 @@ function renderPanelRows() {
     row.innerHTML =
       charImg(s.name) +
       '<span class="pname">' + s.name + '<span class="psong">' + s.song + '</span></span>' +
-      '<span class="pstate">' + (clipURLs[s.name] ? "✔ own clip ready" : "") + '</span>';
+      '<span class="pstate">' +
+        (clipURLs[s.name] ? "🎵✔ " : "") +
+        (picURLs[s.name] ? "🖼✔" : "") +
+      '</span>';
+
+    const picLabel = document.createElement("label");
+    picLabel.textContent = picURLs[s.name] ? "🖼 change" : "🖼 picture";
+    const picInput = document.createElement("input");
+    picInput.type = "file";
+    picInput.accept = "image/*";
+    picInput.addEventListener("change", function () {
+      if (picInput.files && picInput.files[0]) savePictureFile(s.name, picInput.files[0]);
+    });
+    picLabel.appendChild(picInput);
+    row.appendChild(picLabel);
+
     const label = document.createElement("label");
-    label.textContent = clipURLs[s.name] ? "🎵 change" : "🎵 add clip";
+    label.textContent = clipURLs[s.name] ? "🎵 change" : "🎵 clip";
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "audio/*";
@@ -1722,9 +1800,9 @@ fbNext.addEventListener("click", function () {
 
 /* ================= boot ================= */
 order = freshOrder();
-charRow(document.getElementById("startChars"), shuffle(SONGS.slice()).slice(0, 8));
+renderStartRow();
 updateTop();
-loadClips();
+loadSaved();
 setStatus(
   navigator.onLine === false
     ? "You're offline — the tune version plays. Connect to the internet for the real songs, or add your own clip below."
