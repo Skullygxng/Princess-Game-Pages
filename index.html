@@ -1904,6 +1904,18 @@ let stars = 0;
 let tries = 0;
 let options = [];
 let playing = false;
+let counting = false;
+let lastTap = 0;
+let lastSayTap = 0;
+
+/* button-mash protection: taps closer together than a short cooldown are
+   ignored, so mashing can't skip rounds, spam replays or cheat answers */
+function tapOk(ms) {
+  return Date.now() - lastTap > (ms || 600);
+}
+function tapStamp() {
+  lastTap = Date.now();
+}
 
 function shuffle(a) {
   for (let i = a.length - 1; i > 0; i--) {
@@ -1941,6 +1953,7 @@ function stopCountdown() {
   if (cueTimer) { clearTimeout(cueTimer); cueTimer = null; }
   if (countTimer) { clearTimeout(countTimer); countTimer = null; }
   if (countTicker) { clearInterval(countTicker); countTicker = null; }
+  counting = false;
   songCardEl.classList.remove("counting");
 }
 
@@ -1972,6 +1985,8 @@ function startCountdown() {
 
   songCardEl.classList.add("counting");
   coverIconEl.textContent = "▶";
+  coverTextEl.textContent = "Get ready…";
+  counting = true;
   let n = 3;
   showCountNumber(n);
   countBeep(n);
@@ -2055,6 +2070,8 @@ function showRound() {
     btn.addEventListener("click", function () { choose(opt); });
     btn.querySelector(".say").addEventListener("click", function (e) {
       e.stopPropagation();
+      if (Date.now() - lastSayTap < 1500) return;  // no speaker spam
+      lastSayTap = Date.now();
       speak(opt.name);
     });
     answersEl.appendChild(btn);
@@ -2126,6 +2143,11 @@ function buttonFor(name) {
 
 function choose(opt) {
   // tapping an answer stops the song (or the countdown), so the child can answer
+  // button-mash protection: no answers during the countdown, and taps need a
+  // short pause between them so spamming can't guess or skip anything
+  if (!tapOk(800)) return;
+  tapStamp();
+  if (counting) return;
   stopAllAudio();
   Array.prototype.forEach.call(answersEl.children, function (b) {
     b.classList.remove("invite");
@@ -2296,10 +2318,14 @@ document.getElementById("voiceToggle").addEventListener("click", function () {
 
 /* ================= wiring ================= */
 document.getElementById("startBtn").addEventListener("click", function () {
+  if (!tapOk(800)) return;
+  tapStamp();
   ensureAudio();
   startGame();
 });
 document.getElementById("againBtn").addEventListener("click", function () {
+  if (!tapOk(800)) return;
+  tapStamp();
   order = freshOrder();
   roundIndex = 0;
   stars = 0;
@@ -2310,11 +2336,19 @@ document.getElementById("againBtn").addEventListener("click", function () {
   showRound();
 });
 songCardEl.addEventListener("click", function () {
+  // mash protection: taps during the countdown are ignored, and restarts
+  // are limited to one per two seconds
+  if (counting || !tapOk(2000)) return;
+  tapStamp();
   // mid-song: play it again from the top. Otherwise restart the countdown.
   if (playing) { playCurrentSong(); return; }
   startCountdown();
 });
 fbNext.addEventListener("click", function () {
+  // mash protection: only respond while the overlay is actually showing,
+  // and ignore instant double-taps
+  if (!feedback.classList.contains("show") || !tapOk(400)) return;
+  tapStamp();
   const mode = fbNext.dataset.mode;
   feedback.classList.remove("show");
   if (mode === "replay") startCountdown();
