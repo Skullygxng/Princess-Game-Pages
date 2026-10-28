@@ -1976,7 +1976,13 @@ function stopAllAudio() {
 function updateTop() {
   let d = "";
   order.forEach(function (s, i) {
-    d += i < roundIndex ? "⭐" : (i === roundIndex ? "🔵" : "⚪");
+    if (i < roundResults.length) {
+      d += roundResults[i] === "first" ? "⭐" : "✨";
+    } else if (i === roundIndex) {
+      d += "🔵";
+    } else {
+      d += "⚪";
+    }
   });
   dotsEl.textContent = d;
 }
@@ -2132,12 +2138,14 @@ function choose(opt) {
     fbSub.textContent = "It's " + song.name + "! " + song.clue;
     fbNext.textContent = "Got It! ➜";
     fbNext.dataset.mode = "next";
+    roundResults.push("learned");  // Twinkle revealed it — still counts toward her songs
     feedback.classList.add("show");
     speak("Now you know! It's " + song.name + "! Great listening!");
   }
 }
 
 let roundSolved = false;
+let roundResults = [];  // per-round outcome: "first" (she tapped it) or "learned" (Twinkle revealed it)
 
 function solveRound() {
   // a double-tap must never count the same song twice
@@ -2148,6 +2156,7 @@ function solveRound() {
   // start fetching the next song while she reads her praise
   if (order[roundIndex + 1]) primePreview(order[roundIndex + 1]);
   stars++;
+  roundResults.push("first");
   updateTop();
   const btn = buttonFor(song.name);
   if (btn) {
@@ -2182,12 +2191,14 @@ function showEnd() {
   endScreen.classList.remove("hidden");
   charRow(document.getElementById("endChars"), shuffle(SONGS.slice()).slice(0, 8));
   const total = order.length;
-  document.getElementById("endStars").textContent = "⭐ " + stars + " out of " + total + " songs!";
+  const learned = roundResults.filter(function (r) { return r === "learned"; }).length;
+  const learnedLine = learned > 0 ? " ✨ You learned " + learned + " more with Twinkle!" : "";
+  document.getElementById("endStars").textContent = "⭐ " + stars + " out of " + total + " songs!" + learnedLine;
   let praise;
   if (stars === total) {
-    praise = "PERFECT! You're a Disney Song Superstar!";
-  } else if (stars >= total / 2) {
-    praise = "Wow, so many stars! You're a great listener!";
+    praise = "PERFECT! You're a Princess Song Superstar!";
+  } else if (stars + learned >= total / 2) {
+    praise = "Wow, so many songs! You're a great listener!";
   } else {
     praise = "Great job playing! Every song you know is a star!";
   }
@@ -2263,6 +2274,7 @@ document.getElementById("againBtn").addEventListener("click", function () {
   order = freshOrder();
   roundIndex = 0;
   stars = 0;
+  roundResults = [];
   endScreen.classList.add("hidden");
   gameScreen.classList.remove("hidden");
   updateTop();
