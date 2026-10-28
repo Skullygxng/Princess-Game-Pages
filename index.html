@@ -1222,16 +1222,78 @@ if ("speechSynthesis" in window) {
   speechSynthesis.onvoiceschanged = pickVoice;
 }
 
-function speak(text, done) {
-  if (!voiceOn || !("speechSynthesis" in window)) { if (done) done(); return; }
-  try { speechSynthesis.cancel(); } catch (e) {}
-  const u = new SpeechSynthesisUtterance(text);
+// A tiny queue: the game says things one after another, never over each other,
+// and nothing is cancelled mid-sentence. iOS Safari has a bug where an
+// utterance gets garbage-collected mid-speech (the voice just stops and
+// no "done" event ever fires) — keeping a reference fixes that.
+let voiceQueue = [];
+let voiceCurrent = null;
+let voiceJob = null;
+let voiceEpoch = 0;
+let voiceFinishTimer = null;
+let voiceRestartTimer = null;
+
+function voiceEstimateMs(text) {
+  // generous upper bound for slow natural voices at rate 0.95 (~9 chars/sec)
+  return 1200 + (text.length / 7) * 1000;
+}
+
+function speakNext() {
+  if (voiceCurrent || !voiceQueue.length) return;
+  const job = voiceQueue.shift();
+  if (!voiceOn || !("speechSynthesis" in window)) {
+    if (job.done) job.done();
+    speakNext();
+    return;
+  }
+  const myEpoch = voiceEpoch;
+  const u = new SpeechSynthesisUtterance(job.text);
   u.lang = "en-US";
   u.rate = 0.95;
   u.pitch = 1.05;
   if (chosenVoice) u.voice = chosenVoice;
-  if (done) { u.onend = done; u.onerror = done; }
+  voiceCurrent = u;
+  voiceJob = job;
+
+  let finished = false;
+  const finish = function () {
+    if (finished || myEpoch !== voiceEpoch) return;
+    finished = true;
+    if (voiceFinishTimer) { clearTimeout(voiceFinishTimer); voiceFinishTimer = null; }
+    voiceCurrent = null;
+    voiceJob = null;
+    if (job.done) job.done();
+    speakNext();
+  };
+  u.onend = finish;
+  u.onerror = finish;
+  // safety net: if the engine never reports back, finish anyway
+  voiceFinishTimer = setTimeout(finish, voiceEstimateMs(job.text));
   speechSynthesis.speak(u);
+}
+
+// waits its turn politely — never cuts anything off
+function speak(text, done) {
+  voiceQueue.push({ text: text, done: done });
+  if (voiceQueue.length > 3) voiceQueue = voiceQueue.slice(-3);
+  if (!voiceCurrent && !voiceRestartTimer) speakNext();
+}
+
+// hard stop (round changed, answer tapped, talking switched off).
+// Safari can go mute if a new utterance starts on the same tick as a
+// cancel, so the next thing it says waits a beat before starting.
+function speakStopAll() {
+  voiceEpoch++;
+  voiceQueue = [];
+  if (voiceFinishTimer) { clearTimeout(voiceFinishTimer); voiceFinishTimer = null; }
+  const job = voiceJob;
+  voiceJob = null;
+  voiceCurrent = null;
+  try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
+  if (voiceRestartTimer) clearTimeout(voiceRestartTimer);
+  voiceRestartTimer = setTimeout(function () { voiceRestartTimer = null; speakNext(); }, 200);
+  // keep the game flowing even when the voice is stopped or switched off
+  if (job && job.done) job.done();
 }
 
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -1484,13 +1546,14 @@ function startCountdown() {
   };
 
   speak("Song " + (roundIndex + 1) + ". Who's singing?", beginTicks);
-  // if a browser never reports back about the voice, don't leave the card stuck
-  cueTimer = setTimeout(beginTicks, 4500);
+  // the voice itself says when it's done, and only then do the 3-2-1 beeps run.
+  // this timer is a last-resort net in case the speech engine never answers.
+  cueTimer = setTimeout(beginTicks, 12000);
 }
 
 function stopAllAudio() {
   stopCountdown();
-  try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
+  speakStopAll();
   stopClip();
   stopSynth();
   stopPreview();
@@ -1560,8 +1623,7 @@ function showRound() {
 }
 
 function playCurrentSong() {
-  // the song must not compete with the spoken cue
-  try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
+  // the spoken cue finished before this runs, so nothing needs cancelling here
   stopClip();
   stopSynth();
   stopPreview();
@@ -1748,7 +1810,7 @@ document.getElementById("panelClose").addEventListener("click", function () {
 document.getElementById("voiceToggle").addEventListener("click", function () {
   voiceOn = !voiceOn;
   this.textContent = voiceOn ? "🔊 Talking: ON" : "🔊 Talking: OFF";
-  if (!voiceOn) { try { speechSynthesis.cancel(); } catch (e) {} }
+  if (!voiceOn) speakStopAll();
 });
 
 /* ================= wiring ================= */
