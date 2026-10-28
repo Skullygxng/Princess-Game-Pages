@@ -914,7 +914,7 @@ const SVGS = {
 
 // characters that have a picture file in assets/ (anything else is drawn in-page)
 const PNG_ART = {
-  Elsa: 1, Moana: 1, Ariel: 1, Simba: 1, Woody: 1, Olaf: 1, Cinderella: 1, Aladdin: 1,
+  Moana: 1, Olaf: 1, Cinderella: 1, Aladdin: 1,
   Rapunzel: 1, Mirabel: 1, Anna: 1, Belle: 1, Jasmine: 1, Tiana: 1, Aurora: 1,
   "Snow White": 1, Mulan: 1, Pocahontas: 1,
   Maui: 1, Bruno: 1, Miguel: 1, Stitch: 1, Sebastian: 1, Baloo: 1,
@@ -1999,6 +1999,7 @@ function startGame() {
 
 function showRound() {
   tries = 0;
+  roundSolved = false;
   const song = order[roundIndex];
   const bg = "linear-gradient(160deg, " + song.colors[0] + ", " + song.colors[1] + ")";
   document.getElementById("app").style.background = bg;
@@ -2110,9 +2111,16 @@ function choose(opt) {
   }
 }
 
+let roundSolved = false;
+
 function solveRound() {
+  // a double-tap must never count the same song twice
+  if (roundSolved) return;
+  roundSolved = true;
   const song = order[roundIndex];
   stopAllAudio();
+  // start fetching the next song while she reads her praise
+  if (order[roundIndex + 1]) primePreview(order[roundIndex + 1]);
   stars++;
   updateTop();
   const btn = buttonFor(song.name);
