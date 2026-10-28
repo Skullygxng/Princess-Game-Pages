@@ -151,15 +151,6 @@
     margin: 12px 0 4px;
     flex-shrink: 0;
   }
-  #songBadge {
-    text-align: center;
-    font-size: 17px;
-    color: #8a6a9c;
-    margin-bottom: 10px;
-    flex-shrink: 0;
-  }
-
-  /* ---------- song card: tap it to hear the song ---------- */
   #songCard {
     position: relative;
     width: 100%;
@@ -323,26 +314,6 @@
     100% { transform: scale(1); }
   }
 
-  /* ---------- mic ---------- */
-  #micRow { display: flex; flex-direction: column; align-items: center; gap: 5px; margin-top: 12px; flex-shrink: 0; }
-  #micBtn {
-    width: 88px;
-    height: 88px;
-    border-radius: 999px;
-    border: none;
-    background: radial-gradient(circle at 30% 30%, #ff9a9e, #f6416c);
-    font-size: 40px;
-    cursor: pointer;
-    box-shadow: 0 6px 0 #b32047, 0 12px 20px rgba(0,0,0,.2);
-  }
-  #micBtn:active { transform: translateY(4px); box-shadow: 0 2px 0 #b32047; }
-  #micBtn.listening { animation: micpulse .8s ease-in-out infinite; }
-  @keyframes micpulse {
-    0%,100% { transform: scale(1);    box-shadow: 0 6px 0 #b32047, 0 0 0 0 rgba(246,65,108,.5); }
-    50%     { transform: scale(1.1);  box-shadow: 0 6px 0 #b32047, 0 0 0 18px rgba(246,65,108,0); }
-  }
-  #micLabel { font-size: 16px; color: #6b4a86; font-weight: bold; }
-
   /* ---------- feedback overlay ---------- */
   #feedback {
     position: fixed;
@@ -427,6 +398,7 @@
   }
   .panelRow img, .panelRow svg { width: 40px; height: 40px; object-fit: contain; flex-shrink: 0; }
   .panelRow .pname { flex: 1; font-size: 17px; color: #4a3560; font-weight: bold; }
+  .panelRow .psong { display: block; font-size: 12px; color: #8a6a9c; font-weight: normal; }
   .panelRow .pstate { font-size: 13px; color: #2f9e44; }
   .panelRow label {
     border: none;
@@ -478,9 +450,8 @@
     <h1>Princess<br>Game!</h1>
     <div class="subtitle">Listen to the song…<br>Who is singing?</div>
     <button class="btn-big btn-play" id="startBtn">▶ Let's Play!</button>
-    <div class="mic-note">Tap the answer… or say it out loud! 🎤</div>
-    <div class="mic-note" id="grownLink" style="text-decoration:underline;cursor:pointer;">For grown-ups ⚙️</div>
-  </div>
+    <div class="mic-note">Tap the answer to play!</div>
+    <div class="mic-note" id="grownLink" style="text-decoration:underline;cursor:pointer;">For grown-ups ⚙️</div>  </div>
 
   <!-- game screen -->
   <div id="gameScreen" class="hidden" style="display:flex;flex-direction:column;flex:1;">
@@ -490,7 +461,6 @@
       <div id="dots"></div>
     </div>
     <div id="question">Who is singing this song?</div>
-    <div id="songBadge"></div>
     <div id="songCard">
       <div id="coverEq"><span></span><span></span><span></span><span></span></div>
       <div id="coverIcon">▶</div>
@@ -498,10 +468,6 @@
       <div id="coverText">Get ready…</div>
     </div>
     <div id="answers"></div>
-    <div id="micRow">
-      <button id="micBtn" aria-label="Say your answer">🎤</button>
-      <div id="micLabel">Tap me and say the name!</div>
-    </div>
   </div>
 
   <!-- end screen -->
@@ -535,7 +501,7 @@
     </p>
     <div id="panelRows"></div>
     <div id="panelStatus" style="margin-top:12px;font-size:13px;color:#8a6a9c;"></div>
-    <button id="voiceToggle">🎙️ Voice answers: ON</button>
+    <button id="voiceToggle">🔊 Talking: ON</button>
     <button id="panelClose">Done ✔</button>
   </div>
 </div>
@@ -1178,8 +1144,6 @@ const feedback    = document.getElementById("feedback");
 const answersEl   = document.getElementById("answers");
 const starsRow    = document.getElementById("starsRow");
 const dotsEl      = document.getElementById("dots");
-const micBtn      = document.getElementById("micBtn");
-const micLabel    = document.getElementById("micLabel");
 const fbChar      = document.getElementById("fbChar");
 const fbTitle     = document.getElementById("fbTitle");
 const fbSub       = document.getElementById("fbSub");
@@ -1302,7 +1266,6 @@ function showRound() {
   const bg = "linear-gradient(160deg, " + song.colors[0] + ", " + song.colors[1] + ")";
   document.body.style.background = bg;
   document.getElementById("app").style.background = bg;
-  document.getElementById("songBadge").textContent = "♪ " + song.song;
 
   const others = shuffle(SONGS.filter(function (s) { return s.name !== song.name; })).slice(0, 2);
   options = shuffle([song].concat(others));
@@ -1315,7 +1278,7 @@ function showRound() {
       '<span class="face">' + charImg(opt.name) + '</span>' +
       '<span class="name">' + opt.name + '</span>' +
       '<span class="say" role="button" aria-label="Hear the name">🔊</span>';
-    btn.addEventListener("click", function () { choose(opt, null); });
+    btn.addEventListener("click", function () { choose(opt); });
     btn.querySelector(".say").addEventListener("click", function (e) {
       e.stopPropagation();
       speak(opt.name);
@@ -1368,13 +1331,13 @@ function buttonFor(name) {
   });
 }
 
-function choose(opt, byVoice) {
+function choose(opt) {
   // tapping an answer stops the song (or the countdown), so the child can answer
   stopAllAudio();
   const song = order[roundIndex];
 
   if (opt.name === song.name) {
-    solveRound(byVoice);
+    solveRound();
     return;
   }
 
@@ -1410,7 +1373,7 @@ function choose(opt, byVoice) {
   }
 }
 
-function solveRound(byVoice) {
+function solveRound() {
   const song = order[roundIndex];
   stopAllAudio();
   stars++;
@@ -1427,14 +1390,11 @@ function solveRound(byVoice) {
   fbChar.innerHTML = charImg(song.name);
   fbTitle.textContent = praise + " It's " + song.name + "!";
   fbTitle.style.color = "#2f9e44";
-  fbSub.textContent = byVoice
-    ? "You said it with your voice! Super listening! 🎤"
-    : "You know your Disney songs! 🌟";
+  fbSub.textContent = "You know your Disney songs! 🌟";
   fbNext.textContent = roundIndex === order.length - 1 ? "See Your Stars! 🏆" : "Keep Going! ➜";
   fbNext.dataset.mode = "next";
   feedback.classList.add("show");
-  speak(byVoice ? praise + " You said it out loud! It's " + song.name + "!"
-                : praise + " It's " + song.name + "!");
+  speak(praise + " It's " + song.name + "!");
 }
 
 function nextRound() {
@@ -1466,81 +1426,6 @@ function showEnd() {
   speak("You did it! " + praise);
 }
 
-/* ================= voice answers ================= */
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-let listening = false;
-
-if (SpeechRecognition) {
-  recognition = new SpeechRecognition();
-  recognition.lang = "en-US";
-  recognition.interimResults = false;
-  recognition.maxAlternatives = 3;
-
-  recognition.onresult = function (e) {
-    const said = Array.prototype.map.call(e.results, function (r) {
-      return Array.prototype.map.call(r, function (alt) { return alt.transcript; });
-    }).reduce(function (a, b) { return a.concat(b); }, []).join(" ");
-    handleVoice(said);
-  };
-
-  recognition.onend = function () {
-    listening = false;
-    micBtn.classList.remove("listening");
-    micLabel.textContent = "Tap me and say the name!";
-  };
-
-  recognition.onerror = function () {
-    listening = false;
-    micBtn.classList.remove("listening");
-    micLabel.textContent = "Hmm, I didn't hear that. Try again!";
-  };
-
-  micBtn.addEventListener("click", function () {
-    if (listening) return;
-    // stop the music first, or the microphone just hears the song
-    stopAllAudio();
-    ensureAudio();
-    try { speechSynthesis.cancel(); } catch (e) {}
-    recognition.start();
-    listening = true;
-    micBtn.classList.add("listening");
-    micLabel.textContent = "Listening… say the name! 🎤";
-  });
-} else {
-  micBtn.classList.add("hidden");
-  micLabel.textContent = "Tap an answer to play!";
-}
-
-function normalize(s) {
-  return s.toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function handleVoice(transcript) {
-  stopAllAudio();
-  const text = normalize(transcript);
-  if (!text) return;
-  let matched = null;
-  options.forEach(function (opt) {
-    if (!matched && opt.aliases.some(function (a) { return text.indexOf(a) !== -1; })) {
-      matched = opt;
-    }
-  });
-  if (!matched) {
-    micLabel.textContent = 'I heard "' + transcript + '" — say the name again!';
-    speak("I heard you! Try saying the name again!");
-    return;
-  }
-  const song = order[roundIndex];
-  if (matched.name === song.name) {
-    listening = false;
-    micBtn.classList.remove("listening");
-    solveRound(true);
-  } else {
-    choose(matched, true);
-  }
-}
-
 /* ================= grown-ups panel ================= */
 function renderPanelRows() {
   const rows = document.getElementById("panelRows");
@@ -1550,7 +1435,7 @@ function renderPanelRows() {
     row.className = "panelRow";
     row.innerHTML =
       charImg(s.name) +
-      '<span class="pname">' + s.name + '</span>' +
+      '<span class="pname">' + s.name + '<span class="psong">' + s.song + '</span></span>' +
       '<span class="pstate">' + (clipURLs[s.name] ? "✔ own clip ready" : "") + '</span>';
     const label = document.createElement("label");
     label.textContent = clipURLs[s.name] ? "🎵 change" : "🎵 add clip";
@@ -1579,7 +1464,7 @@ document.getElementById("panelClose").addEventListener("click", function () {
 });
 document.getElementById("voiceToggle").addEventListener("click", function () {
   voiceOn = !voiceOn;
-  this.textContent = voiceOn ? "🎙️ Voice answers: ON" : "🎙️ Voice answers: OFF";
+  this.textContent = voiceOn ? "🔊 Talking: ON" : "🔊 Talking: OFF";
   if (!voiceOn) { try { speechSynthesis.cancel(); } catch (e) {} }
 });
 
