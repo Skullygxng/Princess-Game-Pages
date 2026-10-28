@@ -104,6 +104,22 @@
     0%, 100% { transform: translateY(0) rotate(-5deg); }
     50%      { transform: translateY(-12px) rotate(5deg); }
   }
+  .charRow .charSVG {
+    width: clamp(40px, 11.5vw, 58px);
+    height: clamp(40px, 11.5vw, 58px);
+    animation: bob 2.2s ease-in-out infinite;
+  }
+
+  /* characters drawn in the page itself (no picture file needed) */
+  .charSVG {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+  }
+  .charSVG svg { width: 100%; height: 100%; display: block; }
+  .panelRow .charSVG { width: 40px; height: 40px; flex-shrink: 0; }
 
   /* ---------- big buttons ---------- */
   .btn-big {
@@ -615,6 +631,103 @@ const SVGS = {
     '<path d="M74 27 L83 35" stroke="#ffd94d" stroke-width="3.2" stroke-linecap="round"/>' +
     face(57, 66, "#e0a06a") + '</svg>',
 
+  Rapunzel: '<svg viewBox="0 0 120 120">' +
+    '<path d="M36 42 Q20 70 24 102 Q27 116 42 118 L78 118 Q93 116 96 102 Q100 70 84 42 Z" fill="#f2d16b"/>' +
+    '<path d="M46 84 L74 84 L86 118 L34 118 Z" fill="#b57ee0"/>' +
+    '<circle cx="60" cy="54" r="25" fill="#ffe3d0"/>' +
+    '<path d="M35 50 Q33 26 60 26 Q87 26 85 50 Q79 34 60 34 Q41 34 35 50 Z" fill="#f7dd8a"/>' +
+    '<circle cx="88" cy="44" r="6" fill="#ff8fb3"/><circle cx="88" cy="44" r="2.6" fill="#fff3a8"/>' +
+    face(54, 63, "#ffb3b8") + '</svg>',
+
+  Mirabel: '<svg viewBox="0 0 120 120">' +
+    '<path d="M42 84 L78 84 L88 118 L32 118 Z" fill="#f4efe3"/>' +
+    '<path d="M34 96 Q60 104 86 96 L88 118 L32 118 Z" fill="#7fc9a3"/>' +
+    '<circle cx="40" cy="104" r="3.4" fill="#ff8fb3"/><circle cx="52" cy="108" r="3.4" fill="#ffd94d"/>' +
+    '<circle cx="66" cy="104" r="3.4" fill="#6cc0ff"/><circle cx="78" cy="108" r="3.4" fill="#ff8fb3"/>' +
+    '<circle cx="30" cy="48" r="14" fill="#3c2415"/><circle cx="90" cy="48" r="14" fill="#3c2415"/>' +
+    '<circle cx="34" cy="70" r="12" fill="#3c2415"/><circle cx="86" cy="70" r="12" fill="#3c2415"/>' +
+    '<circle cx="60" cy="54" r="25" fill="#c98a5b"/>' +
+    '<path d="M36 50 Q34 26 60 26 Q86 26 84 50 Q78 34 60 34 Q42 34 36 50 Z" fill="#3c2415"/>' +
+    face(54, 63, "#e8a06a") +
+    '<g fill="none" stroke="#2f7d52" stroke-width="3">' +
+    '<circle cx="51" cy="54" r="9"/><circle cx="69" cy="54" r="9"/><path d="M60 54 h0"/></g></svg>',
+
+  Anna: '<svg viewBox="0 0 120 120">' +
+    '<path d="M26 60 Q18 84 24 100 Q30 108 38 102" stroke="#c86a3c" stroke-width="11" fill="none" stroke-linecap="round"/>' +
+    '<path d="M94 60 Q102 84 96 100 Q90 108 82 102" stroke="#c86a3c" stroke-width="11" fill="none" stroke-linecap="round"/>' +
+    '<path d="M46 84 L74 84 L84 118 L36 118 Z" fill="#3f7d8c"/>' +
+    '<circle cx="60" cy="54" r="25" fill="#ffe3d0"/>' +
+    '<path d="M36 50 Q34 26 60 26 Q86 26 84 50 Q78 34 60 34 Q42 34 36 50 Z" fill="#c86a3c"/>' +
+    '<path d="M50 28 Q46 38 50 46" stroke="#c86a3c" stroke-width="7" fill="none" stroke-linecap="round"/>' +
+    face(54, 63, "#ffb3b8") +
+    '<g fill="#e0976a"><circle cx="44" cy="60" r="1.6"/><circle cx="48" cy="64" r="1.6"/>' +
+    '<circle cx="76" cy="60" r="1.6"/><circle cx="72" cy="64" r="1.6"/></g></svg>',
+
+  Belle: '<svg viewBox="0 0 120 120">' +
+    '<path d="M46 84 L74 84 L88 118 L32 118 Z" fill="#f2d16b"/>' +
+    '<path d="M54 84 Q60 96 66 84 Z" fill="#e0b84a"/>' +
+    '<circle cx="60" cy="30" r="11" fill="#6b4326"/>' +
+    '<circle cx="60" cy="54" r="25" fill="#ffe3d0"/>' +
+    '<path d="M35 50 Q33 26 60 26 Q87 26 85 50 Q79 34 60 34 Q41 34 35 50 Z" fill="#7a4a28"/>' +
+    '<path d="M40 44 Q60 36 80 44" stroke="#5d3a20" stroke-width="3" fill="none"/>' +
+    face(54, 63, "#ffb3b8") + '</svg>',
+
+  Jasmine: '<svg viewBox="0 0 120 120">' +
+    '<path d="M30 44 Q20 76 26 108 Q30 116 40 112" fill="#2d2d3a"/>' +
+    '<path d="M90 44 Q100 76 94 108 Q90 116 80 112" fill="#2d2d3a"/>' +
+    '<path d="M46 84 L74 84 L80 112 L40 112 Z" fill="#2fbfb0"/>' +
+    '<circle cx="60" cy="54" r="25" fill="#d99a68"/>' +
+    '<path d="M34 50 Q32 24 60 24 Q88 24 86 50 Q80 32 60 32 Q40 32 34 50 Z" fill="#2d2d3a"/>' +
+    '<path d="M34 40 Q60 26 86 40" stroke="#ffd94d" stroke-width="4" fill="none"/>' +
+    '<circle cx="60" cy="30" r="4.5" fill="#e2543a"/>' +
+    face(54, 63, "#e8a06a") +
+    '<path d="M48 84 Q60 92 72 84" stroke="#ffd94d" stroke-width="3.5" fill="none"/></svg>',
+
+  Tiana: '<svg viewBox="0 0 120 120">' +
+    '<path d="M46 84 L74 84 L86 118 L34 118 Z" fill="#3fae6a"/>' +
+    '<ellipse cx="60" cy="112" rx="24" ry="8" fill="#2f8f56"/>' +
+    '<circle cx="60" cy="26" r="12" fill="#2b1a12"/>' +
+    '<circle cx="60" cy="54" r="25" fill="#8d5523"/>' +
+    '<path d="M35 50 Q33 26 60 26 Q87 26 85 50 Q79 34 60 34 Q41 34 35 50 Z" fill="#2b1a12"/>' +
+    face(54, 63, "#a86b34") +
+    '<circle cx="34" cy="60" r="3" fill="#ffd94d"/><circle cx="86" cy="60" r="3" fill="#ffd94d"/></svg>',
+
+  Aurora: '<svg viewBox="0 0 120 120">' +
+    '<path d="M36 46 Q24 74 28 100 Q32 110 44 112 L76 112 Q88 110 92 100 Q96 74 84 46 Z" fill="#f4cf6d"/>' +
+    '<path d="M46 86 L74 86 L86 118 L34 118 Z" fill="#f4a6c8"/>' +
+    '<circle cx="60" cy="54" r="25" fill="#ffe3d0"/>' +
+    '<path d="M35 50 Q33 26 60 26 Q87 26 85 50 Q79 34 60 34 Q41 34 35 50 Z" fill="#f4cf6d"/>' +
+    '<path d="M48 22 L54 30 L60 20 L66 30 L72 22 L70 34 L50 34 Z" fill="#ffd94d" stroke="#e0b030" stroke-width="1.6"/>' +
+    face(54, 63, "#ffb3b8") + '</svg>',
+
+  "Snow White": '<svg viewBox="0 0 120 120">' +
+    '<path d="M46 86 L74 86 L84 118 L36 118 Z" fill="#ffd94d"/>' +
+    '<path d="M46 84 L74 84 L74 98 L46 98 Z" fill="#2f63b0"/>' +
+    '<circle cx="60" cy="54" r="25" fill="#ffe3d0"/>' +
+    '<path d="M34 52 Q30 24 60 24 Q90 24 86 52 Q80 32 60 32 Q40 32 34 52 Z" fill="#2d2d3a"/>' +
+    '<path d="M50 26 Q58 18 66 26" stroke="#e2543a" stroke-width="4" fill="none" stroke-linecap="round"/>' +
+    '<circle cx="58" cy="22" r="5" fill="#e2543a"/>' +
+    face(54, 63, "#ffb3b8") +
+    '<circle cx="36" cy="58" r="4" fill="#ffd94d"/><circle cx="84" cy="58" r="4" fill="#ffd94d"/></svg>',
+
+  Mulan: '<svg viewBox="0 0 120 120">' +
+    '<path d="M36 46 Q24 74 28 100 Q32 110 44 112 L76 112 Q88 110 92 100 Q96 74 84 46 Z" fill="#2d2d3a"/>' +
+    '<path d="M46 86 L74 86 L84 118 L36 118 Z" fill="#d1495b"/>' +
+    '<path d="M50 86 Q60 100 70 86 Z" fill="#f4efe3"/>' +
+    '<circle cx="60" cy="54" r="25" fill="#f0c9a0"/>' +
+    '<path d="M35 50 Q33 26 60 26 Q87 26 85 50 Q79 34 60 34 Q41 34 35 50 Z" fill="#2d2d3a"/>' +
+    '<circle cx="82" cy="40" r="5.5" fill="#ff8fb3"/><circle cx="82" cy="40" r="2.4" fill="#fff3a8"/>' +
+    face(54, 63, "#e8a06a") + '</svg>',
+
+  Pocahontas: '<svg viewBox="0 0 120 120">' +
+    '<path d="M36 40 Q22 76 26 110 Q30 118 42 114 L78 114 Q90 118 94 110 Q98 76 84 40 Z" fill="#2d2d3a"/>' +
+    '<path d="M46 86 L74 86 L84 118 L36 118 Z" fill="#d9b48a"/>' +
+    '<circle cx="60" cy="54" r="25" fill="#d99a68"/>' +
+    '<path d="M35 50 Q33 26 60 26 Q87 26 85 50 Q79 34 60 34 Q41 34 35 50 Z" fill="#2d2d3a"/>' +
+    '<path d="M84 22 Q92 12 98 26 Q92 30 86 26 Z" fill="#f4e3c1"/>' +
+    '<path d="M48 84 Q60 90 72 84" stroke="#2fbfb0" stroke-width="3.5" fill="none"/>' +
+    face(54, 63, "#e8a06a") + '</svg>',
+
   Star: '<svg class="mascot" viewBox="0 0 120 120">' +
     '<path d="M60 8 L74 44 L112 46 L82 70 L92 106 L60 84 L28 106 L38 70 L8 46 L46 44 Z" fill="#ffd94d" stroke="#e8a820" stroke-width="4" stroke-linejoin="round"/>' +
     '<circle cx="50" cy="52" r="4" fill="#5a4300"/><circle cx="70" cy="52" r="4" fill="#5a4300"/>' +
@@ -623,7 +736,13 @@ const SVGS = {
     '<path d="M53 61 Q60 68 67 61" stroke="#a37200" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>'
 };
 
+// characters that have a picture file in assets/ (the rest are drawn in-page)
+const PNG_ART = { Elsa: 1, Moana: 1, Ariel: 1, Simba: 1, Woody: 1, Olaf: 1, Cinderella: 1, Aladdin: 1 };
+
 function charImg(name) {
+  if (!PNG_ART[name]) {
+    return '<span class="charSVG">' + (SVGS[name] || "") + '</span>';
+  }
   return '<img src="assets/' + name + '.png" alt="' + name + '" data-char="' + name + '" onerror="charImgFail(this)">';
 }
 
@@ -727,6 +846,106 @@ const SONGS = [
     melody: [["F4",.5],["G4",.5],["A4",1],["F4",.5],["G4",.5],["A4",1],
              ["A4",.5],["B4",.5],["C5",1],["B4",.5],["A4",.5],["G4",1],
              ["F4",.5],["G4",.5],["A4",.5],["C5",.5],["D5",1.5],[null,.5]]
+  },
+  {
+    name: "Rapunzel", aliases: ["rapunzel", "tangled", "tangle"],
+    song: "When Will My Life Begin (Tangled)", tempo: 132, wave: "sine",
+    preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/20/1b/eb/201bebe1-9201-c7d2-d6d6-f7eea91e4d47/mzaf_795081222795515404.plus.aac.p.m4a",
+    colors: ["#f6ecff", "#fff3dd"],
+    clue: "She has very long hair and lives in a tower!",
+    chords: ["C", "F", "G", "C"],
+    melody: [["E4",.5],["G4",.5],["A4",1],["G4",.5],["E4",.5],["D4",1],[null,.5],
+             ["C4",.5],["D4",.5],["E4",.5],["G4",.5],["A4",1.5],[null,.5]]
+  },
+  {
+    name: "Mirabel", aliases: ["mirabel", "encanto"],
+    song: "Waiting on a Miracle (Encanto)", tempo: 126, wave: "triangle",
+    preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/fd/49/4b/fd494ba9-0b17-6c17-d714-7ee5beff46a9/mzaf_17907062781142189431.plus.aac.p.m4a",
+    colors: ["#eaf7ea", "#fff0d9"],
+    clue: "She wears glasses and has a magical family!",
+    chords: ["C", "G", "Am", "F"],
+    melody: [["G4",.5],["A4",.5],["C5",1],["B4",.5],["A4",.5],["G4",1],[null,.5],
+             ["E4",.5],["G4",.5],["A4",.5],["G4",.5],["E4",1.5],[null,.5]]
+  },
+  {
+    name: "Anna", aliases: ["anna", "frozen sister"],
+    song: "For the First Time in Forever (Frozen)", tempo: 140, wave: "triangle",
+    preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/6c/42/d9/6c42d958-59a7-bff9-45cd-76b80c7543b5/mzaf_17256185786834217085.plus.aac.p.m4a",
+    colors: ["#e8f6ff", "#e9fff3"],
+    clue: "She has red braids and is Elsa's little sister!",
+    chords: ["C", "G", "Am", "F"],
+    melody: [["C5",.5],["C5",.5],["D5",.5],["E5",.5],["G5",1],[null,.5],
+             ["E5",.5],["D5",.5],["C5",.5],["D5",.5],["E5",1.5],[null,.5]]
+  },
+  {
+    name: "Belle", aliases: ["belle", "beauty and the beast"],
+    song: "Belle (Beauty and the Beast)", tempo: 120, wave: "sine",
+    preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/89/14/15/89141553-41c5-d805-a048-46b10b900a3d/mzaf_4999339466592145511.plus.aac.p.m4a",
+    colors: ["#fff7d9", "#ffe9f2"],
+    clue: "She loves books and dances in a yellow dress!",
+    chords: ["C", "Am", "F", "G"],
+    melody: [["G4",.5],["G4",.5],["E4",.5],["G4",.5],["A4",1],[null,.5],
+             ["G4",.5],["E4",.5],["D4",.5],["E4",.5],["C4",1.5],[null,.5]]
+  },
+  {
+    name: "Jasmine", aliases: ["jasmine", "princess jasmine"],
+    song: "Speechless (Aladdin)", tempo: 96, wave: "sine",
+    preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/36/59/75/36597523-9c76-6aeb-37cb-542a4a553c48/mzaf_2759375711895842544.plus.aac.p.m4a",
+    colors: ["#e6fff6", "#dff0ff"],
+    clue: "She's a princess with a magic carpet and a tiger!",
+    chords: ["Am", "F", "C", "G"],
+    melody: [["A4",1],["C5",.5],["B4",.5],["A4",1],["G4",1],[null,.5],
+             ["E4",.5],["G4",.5],["A4",1.5],[null,.5]]
+  },
+  {
+    name: "Tiana", aliases: ["tiana", "princess and the frog"],
+    song: "Almost There (The Princess and the Frog)", tempo: 132, wave: "triangle",
+    preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e7/0f/ce/e70fce2c-c327-acdd-a49b-182a7ec181e4/mzaf_10309733178135175725.plus.aac.p.m4a",
+    colors: ["#e6f9ec", "#fff8d9"],
+    clue: "She kisses a frog and makes beignets!",
+    chords: ["C", "F", "G", "C"],
+    melody: [["C5",.5],["B4",.5],["A4",.5],["G4",.5],["A4",1],[null,.5],
+             ["G4",.5],["E4",.5],["G4",.5],["A4",.5],["C5",1.5],[null,.5]]
+  },
+  {
+    name: "Aurora", aliases: ["aurora", "sleeping beauty", "briar rose"],
+    song: "Once Upon a Dream (Sleeping Beauty)", tempo: 90, wave: "sine",
+    preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/a6/f4/7a/a6f47a9d-0029-924d-5f7f-65c0ae71d563/mzaf_13745195944560216028.plus.aac.p.m4a",
+    colors: ["#ffeaf4", "#eef0ff"],
+    clue: "She's a sleeping princess in a pink dress!",
+    chords: ["C", "Am", "F", "G"],
+    melody: [["E4",1],["G4",.5],["A4",.5],["G4",1],["E4",1],[null,.5],
+             ["D4",.5],["E4",.5],["C4",1.5],[null,.5]]
+  },
+  {
+    name: "Snow White", aliases: ["snow white", "snowwhite", "seven dwarfs"],
+    song: "Whistle While You Work (Snow White)", tempo: 126, wave: "sine",
+    preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/97/0a/fb/970afb24-2956-b39b-6d10-08fc65d8a07c/mzaf_5580095785147057770.plus.aac.p.m4a",
+    colors: ["#eef7ff", "#fff4e6"],
+    clue: "She lives with seven little dwarfs in the forest!",
+    chords: ["C", "F", "G", "C"],
+    melody: [["G4",.5],["G4",.5],["A4",.5],["G4",.5],["E4",1],[null,.5],
+             ["D4",.5],["E4",.5],["F4",.5],["G4",.5],["C5",1.5],[null,.5]]
+  },
+  {
+    name: "Mulan", aliases: ["mulan", "fa mulan"],
+    song: "Reflection (Mulan)", tempo: 96, wave: "sine",
+    preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/3b/14/68/3b146818-cc1c-928b-e4d8-472df0bea7c8/mzaf_18426539434771722329.plus.aac.p.m4a",
+    colors: ["#ffeef0", "#e8f4ff"],
+    clue: "She dresses as a soldier to save her father!",
+    chords: ["Am", "F", "C", "G"],
+    melody: [["A4",1],["B4",.5],["C5",.5],["B4",1],["A4",1],[null,.5],
+             ["G4",.5],["A4",.5],["E4",1.5],[null,.5]]
+  },
+  {
+    name: "Pocahontas", aliases: ["pocahontas", "pocahonta"],
+    song: "Colors of the Wind (Pocahontas)", tempo: 104, wave: "sine",
+    preview: "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/d3/90/b2/d390b2ea-9501-cd3b-b4be-238d63a51c5f/mzaf_10571805724917504432.plus.aac.p.m4a",
+    colors: ["#eaf7ec", "#e6f2ff"],
+    clue: "She can talk to the wind and the forest!",
+    chords: ["C", "G", "Am", "F"],
+    melody: [["C5",.5],["D5",.5],["E5",1],["D5",.5],["C5",.5],["A4",1],[null,.5],
+             ["G4",.5],["A4",.5],["C5",.5],["D5",.5],["E5",1.5],[null,.5]]
   }
 ];
 
@@ -1165,6 +1384,13 @@ function shuffle(a) {
   return a;
 }
 
+// a game is ten songs, picked fresh from every character we have
+const ROUNDS = 10;
+
+function freshOrder() {
+  return shuffle(SONGS.slice()).slice(0, ROUNDS);
+}
+
 function setPlaying(v) {
   playing = v;
   songCardEl.classList.toggle("playing", v);
@@ -1203,9 +1429,11 @@ function countBeep(n) {
 function startCountdown() {
   stopAllAudio();
   ensureAudio();
-  try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
   const song = order[roundIndex];
   if (!song) return;
+
+  // like the quiz video: "Song 3! Who's singing? Listen closely!"
+  speak("Song " + (roundIndex + 1) + "! Who's singing? Listen closely!");
 
   // start the song silently inside this tap, so the sound is allowed in a moment
   primePreview(song);
@@ -1294,6 +1522,8 @@ function showRound() {
 }
 
 function playCurrentSong() {
+  // the song must not compete with the spoken cue
+  try { if ("speechSynthesis" in window) speechSynthesis.cancel(); } catch (e) {}
   stopClip();
   stopSynth();
   stopPreview();
@@ -1390,11 +1620,11 @@ function solveRound() {
   fbChar.innerHTML = charImg(song.name);
   fbTitle.textContent = praise + " It's " + song.name + "!";
   fbTitle.style.color = "#2f9e44";
-  fbSub.textContent = "You know your Disney songs! 🌟";
+  fbSub.textContent = "🎵 That was " + song.song + "!";
   fbNext.textContent = roundIndex === order.length - 1 ? "See Your Stars! 🏆" : "Keep Going! ➜";
   fbNext.dataset.mode = "next";
   feedback.classList.add("show");
-  speak(praise + " It's " + song.name + "!");
+  speak(praise + " It's " + song.name + "! That was " + song.song.replace(/\s*\(.*\)\s*$/, "") + "!");
 }
 
 function nextRound() {
@@ -1409,7 +1639,7 @@ function showEnd() {
   stopAllAudio();
   gameScreen.classList.add("hidden");
   endScreen.classList.remove("hidden");
-  charRow(document.getElementById("endChars"), SONGS.slice(0, 8));
+  charRow(document.getElementById("endChars"), shuffle(SONGS.slice()).slice(0, 8));
   const total = order.length;
   document.getElementById("endStars").textContent = "⭐ " + stars + " out of " + total + " songs!";
   let praise;
@@ -1474,7 +1704,7 @@ document.getElementById("startBtn").addEventListener("click", function () {
   startGame();
 });
 document.getElementById("againBtn").addEventListener("click", function () {
-  order = shuffle(SONGS.slice());
+  order = freshOrder();
   roundIndex = 0;
   stars = 0;
   endScreen.classList.add("hidden");
@@ -1494,8 +1724,8 @@ fbNext.addEventListener("click", function () {
 });
 
 /* ================= boot ================= */
-order = shuffle(SONGS.slice());
-charRow(document.getElementById("startChars"), SONGS.slice(0, 8));
+order = freshOrder();
+charRow(document.getElementById("startChars"), shuffle(SONGS.slice()).slice(0, 8));
 updateTop();
 loadClips();
 setStatus(
