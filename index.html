@@ -27,7 +27,6 @@
     display: flex;
     justify-content: center;
     background: linear-gradient(160deg, #ffe9f2, #dff1ff 60%, #fff7d9);
-    transition: background 1s ease;
     overflow: hidden;
   }
 
@@ -296,7 +295,7 @@
   .answer.wrong-wiggle { animation: wiggle .45s ease; background: #ffe3e3; }
   .answer.glow {
     animation: glow 1s ease-in-out infinite alternate;
-    outline: 5px solid #6ee787;
+    outline: 4px solid #6ee787;
   }
   @keyframes wiggle {
     0%,100% { transform: translateX(0); }
@@ -304,8 +303,8 @@
     75%     { transform: translateX(10px) rotate(2deg); }
   }
   @keyframes glow {
-    from { box-shadow: 0 0 8px 4px rgba(110,231,135,.5); }
-    to   { box-shadow: 0 0 22px 10px rgba(110,231,135,.9); }
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.03); }
   }
   .answer.correct-pop { animation: pop .5s ease; background: #d8f8d8; }
   @keyframes pop {
@@ -1332,11 +1331,10 @@ function loadSaved() {
     };
 
     tx.oncomplete = function () {
-      renderPanelRows();
-      renderStartRow();
-      if (!feedback.classList.contains("show")) {
-        // answer tiles are rebuilt each round, so nothing else to refresh
-      }
+      // only redraw if something was actually saved, and never build the
+      // hidden grown-ups panel (with its 18 pictures) before it is opened
+      if (Object.keys(picURLs).length) renderStartRow();
+      if (panel.classList.contains("show")) renderPanelRows();
     };
   });
 }
@@ -1533,7 +1531,6 @@ function showRound() {
   tries = 0;
   const song = order[roundIndex];
   const bg = "linear-gradient(160deg, " + song.colors[0] + ", " + song.colors[1] + ")";
-  document.body.style.background = bg;
   document.getElementById("app").style.background = bg;
 
   const others = shuffle(SONGS.filter(function (s) { return s.name !== song.name; })).slice(0, 2);
@@ -1654,7 +1651,7 @@ function solveRound() {
     btn.classList.add("correct-pop");
     btn.classList.remove("glow");
   }
-  burstConfetti(160);
+  burstConfetti(110);
   fanfare();
 
   const praise = pick(PRAISE_BIG);
@@ -1692,7 +1689,7 @@ function showEnd() {
     praise = "Great job playing! Every song you know is a star!";
   }
   document.getElementById("endPraise").textContent = praise;
-  burstConfetti(240);
+  burstConfetti(160);
   fanfare();
   speak("You did it! " + praise);
 }
