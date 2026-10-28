@@ -1043,14 +1043,18 @@ let songBus = null;
 let synthTimer = null;
 
 function ensureAudio() {
-  if (!ctx) {
-    ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const len = ctx.sampleRate * 0.5;
-    noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
-    const d = noiseBuf.getChannelData(0);
-    for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
-  }
-  if (ctx.state === "suspended") ctx.resume();
+  try {
+    if (!ctx) {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const len = ctx.sampleRate * 0.5;
+      noiseBuf = ctx.createBuffer(1, len, ctx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+    }
+  } catch (e) { ctx = null; noiseBuf = null; }
+  try {
+    if (ctx && ctx.state === "suspended") ctx.resume();
+  } catch (e) {}
   return ctx;
 }
 
@@ -1139,7 +1143,12 @@ function stopSynth() {
 }
 
 function playSynthSong(song) {
-  ensureAudio();
+  if (!ensureAudio()) {
+    setStatus("This device isn't playing sounds right now — close the game fully and open it again.");
+    setPlaying(true);
+    synthTimer = setTimeout(function () { setPlaying(false); }, 8000);
+    return;
+  }
   stopSynth();
   setPlaying(true);
   songBus = ctx.createGain();
@@ -1181,25 +1190,29 @@ function playSynthSong(song) {
 }
 
 function fanfare() {
-  ensureAudio();
-  const bus = ctx.destination;
-  const t = ctx.currentTime + 0.02;
-  chordNotes("C", 5).forEach(function (f) { tone(bus, f, t, 0.9, 0.1, "triangle"); });
-  chordNotes("F", 5).forEach(function (f) { tone(bus, f, t + 0.18, 0.9, 0.1, "triangle"); });
-  chordNotes("G", 5).forEach(function (f) { tone(bus, f, t + 0.36, 0.6, 0.1, "triangle"); });
-  chordNotes("C", 6).forEach(function (f) {
-    tone(bus, f, t + 0.54, 1.2, 0.12, "triangle");
-  });
-  const sparkles = [1318, 1568, 2093, 2637, 3136];
-  sparkles.forEach(function (f, i) {
-    tone(bus, f, t + 0.6 + i * 0.09, 0.3, 0.06, "sine");
-  });
+  if (!ensureAudio()) return;
+  try {
+    const bus = ctx.destination;
+    const t = ctx.currentTime + 0.02;
+    chordNotes("C", 5).forEach(function (f) { tone(bus, f, t, 0.9, 0.1, "triangle"); });
+    chordNotes("F", 5).forEach(function (f) { tone(bus, f, t + 0.18, 0.9, 0.1, "triangle"); });
+    chordNotes("G", 5).forEach(function (f) { tone(bus, f, t + 0.36, 0.6, 0.1, "triangle"); });
+    chordNotes("C", 6).forEach(function (f) {
+      tone(bus, f, t + 0.54, 1.2, 0.12, "triangle");
+    });
+    const sparkles = [1318, 1568, 2093, 2637, 3136];
+    sparkles.forEach(function (f, i) {
+      tone(bus, f, t + 0.6 + i * 0.09, 0.3, 0.06, "sine");
+    });
+  } catch (e) {}
 }
 
 function softOops() {
-  ensureAudio();
-  tone(ctx.destination, noteFreq("E4"), ctx.currentTime + 0.02, 0.25, 0.12, "sine");
-  tone(ctx.destination, noteFreq("C4"), ctx.currentTime + 0.28, 0.4, 0.1, "sine");
+  if (!ensureAudio()) return;
+  try {
+    tone(ctx.destination, noteFreq("E4"), ctx.currentTime + 0.02, 0.25, 0.12, "sine");
+    tone(ctx.destination, noteFreq("C4"), ctx.currentTime + 0.28, 0.4, 0.1, "sine");
+  } catch (e) {}
 }
 
 /* ================= speech (gentle, not robotic) ================= */
@@ -1482,6 +1495,7 @@ function setPlaying(v) {
 }
 
 let cueTimer = null;
+let currentBeginTicks = null;
 let countTimer = null;
 let countTicker = null;
 let cueSeq = 0;
@@ -1491,6 +1505,7 @@ function stopCountdown() {
   if (cueTimer) { clearTimeout(cueTimer); cueTimer = null; }
   if (countTimer) { clearTimeout(countTimer); countTimer = null; }
   if (countTicker) { clearInterval(countTicker); countTicker = null; }
+  currentBeginTicks = null;
   songCardEl.classList.remove("counting");
 }
 
@@ -1508,8 +1523,10 @@ function countBeep(n) {
   } catch (e) {}
 }
 
-// The voice says "Song 3. Who's singing?" FIRST, then the 3-2-1 beats run,
-// then the song plays: nothing overlaps and nothing gets cut off.
+// The voice cue plays first, but it never holds the game hostage:
+// after 3 seconds the 3-2-1 starts anyway (iOS speech can be slow, muted
+// or wedged). The voice is never cancelled, so it just finishes gently
+// over the first beat. Tapping the card skips straight to the music.
 function startCountdown() {
   stopAllAudio();
   ensureAudio();
@@ -1521,7 +1538,7 @@ function startCountdown() {
 
   songCardEl.classList.add("ready");
   coverIconEl.textContent = "▶";
-  coverTextEl.textContent = "Get ready…";
+  coverTextEl.textContent = "Tap for music!";
 
   let begun = false;
   const myCue = ++cueSeq;
@@ -1544,11 +1561,11 @@ function startCountdown() {
       playCurrentSong();
     }, 3000);
   };
+  currentBeginTicks = beginTicks;
 
   speak("Song " + (roundIndex + 1) + ". Who's singing?", beginTicks);
-  // the voice itself says when it's done, and only then do the 3-2-1 beeps run.
-  // this timer is a last-resort net in case the speech engine never answers.
-  cueTimer = setTimeout(beginTicks, 12000);
+  // hard cap: even if the speech engine never answers, music starts in 3s
+  cueTimer = setTimeout(beginTicks, 3000);
 }
 
 function stopAllAudio() {
@@ -1828,7 +1845,10 @@ document.getElementById("againBtn").addEventListener("click", function () {
   showRound();
 });
 songCardEl.addEventListener("click", function () {
-  // tapping the card starts the 3-2-1 over again
+  // mid-song: play it again from the top
+  if (playing) { playCurrentSong(); return; }
+  // waiting on the voice cue: skip it and count down right now
+  if (currentBeginTicks) { currentBeginTicks(); return; }
   startCountdown();
 });
 fbNext.addEventListener("click", function () {
