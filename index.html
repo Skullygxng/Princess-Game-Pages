@@ -63,6 +63,16 @@
   }
   .subtitle { font-size: 22px; color: #555; }
   .mic-note { font-size: 16px; color: #8a6a9c; }
+  .link-note {
+    border: none;
+    background: none;
+    padding: 0;
+    font-family: inherit;
+    font-size: 16px;
+    color: #8a6a9c;
+    text-decoration: underline;
+    cursor: pointer;
+  }
 
   .charRow {
     display: flex;
@@ -463,7 +473,8 @@
     <div class="subtitle">Listen to the song…<br>Who is singing?</div>
     <button class="btn-big btn-play" id="startBtn">▶ Let's Play!</button>
     <div class="mic-note">Tap the answer to play!</div>
-    <div class="mic-note" id="grownLink" style="text-decoration:underline;cursor:pointer;">For grown-ups ⚙️</div>  </div>
+    <button type="button" class="link-note" id="grownLink">For grown-ups ⚙️</button>
+  </div>
 
   <!-- game screen -->
   <div id="gameScreen" class="hidden" style="display:flex;flex-direction:column;flex:1;">
@@ -2067,6 +2078,13 @@ function startGame() {
   showRound();
 }
 
+// the start screen can be taller than the phone, so always start the game
+// screen from the top instead of inheriting the old scroll position
+function scrollToTop() {
+  const app = document.getElementById("app");
+  if (app) app.scrollTop = 0;
+}
+
 function showRound() {
   tries = 0;
   roundSolved = false;
@@ -2099,6 +2117,7 @@ function showRound() {
 
   // count 3-2-1, then the song plays by itself
   watchImages();
+  scrollToTop();
   coverIconEl.textContent = "▶";
   startCountdown();
 }
@@ -2262,6 +2281,7 @@ function showEnd() {
   stopAllAudio();
   gameScreen.classList.add("hidden");
   endScreen.classList.remove("hidden");
+  scrollToTop();
   charRow(document.getElementById("endChars"), shuffle(SONGS.slice()).slice(0, 8));
   const total = order.length;
   const learned = roundResults.filter(function (r) { return r === "learned"; }).length;
