@@ -213,6 +213,14 @@
   #coverEq span:nth-child(4) { animation-delay: .1s; }
   @keyframes eq { from { height: 9px; } to { height: 56px; } }
 
+  /* little wobble when a guess comes before the song has played 5 seconds */
+  #songCard.nudge { animation: nudgePulse .45s ease; }
+  @keyframes nudgePulse {
+    0%, 100% { transform: translateX(0); }
+    30%      { transform: translateX(-8px); }
+    70%      { transform: translateX(8px); }
+  }
+
   /* the 3-2-1 countdown before each song */
   #countNum {
     display: none;
@@ -1905,6 +1913,7 @@ let tries = 0;
 let options = [];
 let playing = false;
 let counting = false;
+let songPlayStartedAt = 0;   // when the current song actually began playing
 let lastTap = 0;
 let lastSayTap = 0;
 
@@ -1915,6 +1924,13 @@ function tapOk(ms) {
 }
 function tapStamp() {
   lastTap = Date.now();
+}
+
+// a gentle wobble of the song card: "listen a little longer first"
+function nudgeListen() {
+  songCardEl.classList.remove("nudge");
+  void songCardEl.offsetWidth;
+  songCardEl.classList.add("nudge");
 }
 
 function shuffle(a) {
@@ -1934,6 +1950,7 @@ function freshOrder() {
 
 function setPlaying(v) {
   playing = v;
+  songPlayStartedAt = v ? Date.now() : 0;
   songCardEl.classList.toggle("playing", v);
   if (v) {
     songCardEl.classList.remove("ready");
@@ -2148,6 +2165,11 @@ function choose(opt) {
   if (!tapOk(800)) return;
   tapStamp();
   if (counting) return;
+  // let the song play for at least five seconds before a guess counts
+  if (playing && Date.now() - songPlayStartedAt < 5000) {
+    nudgeListen();
+    return;
+  }
   stopAllAudio();
   Array.prototype.forEach.call(answersEl.children, function (b) {
     b.classList.remove("invite");
