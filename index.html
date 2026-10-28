@@ -736,8 +736,12 @@ const SVGS = {
     '<path d="M53 61 Q60 68 67 61" stroke="#a37200" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg>'
 };
 
-// characters that have a picture file in assets/ (the rest are drawn in-page)
-const PNG_ART = { Elsa: 1, Moana: 1, Ariel: 1, Simba: 1, Woody: 1, Olaf: 1, Cinderella: 1, Aladdin: 1 };
+// characters that have a picture file in assets/ (anything else is drawn in-page)
+const PNG_ART = {
+  Elsa: 1, Moana: 1, Ariel: 1, Simba: 1, Woody: 1, Olaf: 1, Cinderella: 1, Aladdin: 1,
+  Rapunzel: 1, Mirabel: 1, Anna: 1, Belle: 1, Jasmine: 1, Tiana: 1, Aurora: 1,
+  "Snow White": 1, Mulan: 1, Pocahontas: 1
+};
 
 function charImg(name) {
   if (picURLs[name]) {
