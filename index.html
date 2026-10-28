@@ -249,7 +249,7 @@
     gap: 8px;
     border: none;
     border-radius: 24px;
-    background: rgba(255,255,255,.94);
+    background: linear-gradient(180deg, #fff5f9, #ffdce8);
     box-shadow: 0 6px 0 rgba(0,0,0,.12), 0 10px 18px rgba(0,0,0,.10);
     padding: 16px 8px 12px;
     cursor: pointer;
@@ -328,7 +328,7 @@
     justify-content: center;
     text-align: center;
     gap: 10px;
-    background: rgba(255,255,255,.95);
+    background: rgba(255,232,244,.96);
     z-index: 10;
     padding: 30px;
   }
@@ -347,7 +347,7 @@
   #fbSub   {
     font-size: 22px;
     color: #444;
-    background: #fff;
+    background: #fff0f5;
     border-radius: 18px;
     padding: 10px 18px;
     box-shadow: 0 4px 10px rgba(0,0,0,.08);
@@ -935,7 +935,33 @@ function charImg(name) {
   if (!PNG_ART[name]) {
     return '<span class="charSVG">' + (SVGS[name] || "") + '</span>';
   }
-  return '<img src="assets/' + name + '-s.webp" alt="' + name + '" data-char="' + name + '" decoding="async" onerror="charImgFail(this)">';
+  return '<img src="assets/' + name + '-s.webp" alt="' + name + '" data-char="' + name + '" decoding="async" onload="imgLoaded(this)" onerror="charImgFail(this)">';
+}
+
+function imgLoaded(img) {
+  img.dataset.loaded = "1";
+}
+
+function showCharSVG(img, name) {
+  const wrap = document.createElement("div");
+  wrap.innerHTML = '<span class="charSVG">' + (SVGS[name] || "") + '</span>';
+  const svg = wrap.firstChild;
+  if (svg) img.replaceWith(svg);
+  else img.style.display = "none";
+}
+
+/* A slow or hung picture request fires no error event, so every character
+   image is watched: if it hasn't painted within 8 seconds, walk the
+   fallback chain (small picture → big picture → drawing). */
+function watchImages() {
+  document.querySelectorAll("img[data-char]").forEach(function (img) {
+    if (img.dataset.watch) return;
+    img.dataset.watch = "1";
+    setTimeout(function () {
+      if (!img.isConnected || img.dataset.loaded) return;
+      if (!img.complete || img.naturalWidth === 0) charImgFail(img);
+    }, 8000);
+  });
 }
 
 function charImgFail(img) {
@@ -943,14 +969,12 @@ function charImgFail(img) {
   // small picture missing? fall back to the full-size one, then to the drawing
   if (name && img.dataset.big !== "1" && PNG_ART[name]) {
     img.dataset.big = "1";
+    img.onload = function () { imgLoaded(img); };
+    img.onerror = function () { showCharSVG(img, name); };
     img.src = "assets/" + name + ".png";
     return;
   }
-  const wrap = document.createElement("div");
-  wrap.innerHTML = SVGS[name] || "";
-  const svg = wrap.firstChild;
-  if (svg) { svg.style.width = "100%"; svg.style.height = "100%"; img.replaceWith(svg); }
-  else img.style.display = "none";
+  showCharSVG(img, name);
 }
 
 /* ================= character + song data =================
@@ -1995,6 +2019,7 @@ function charRow(el, songs) {
     w.firstChild.style.display = "inline-block";
     el.appendChild(w.firstChild);
   });
+  watchImages();
 }
 
 function renderStartRow() {
@@ -2038,6 +2063,7 @@ function showRound() {
   updateTop();
 
   // count 3-2-1, then the song plays by itself
+  watchImages();
   coverIconEl.textContent = "▶";
   startCountdown();
 }
@@ -2133,6 +2159,7 @@ function choose(opt) {
     const rightBtn = buttonFor(song.name);
     if (rightBtn) rightBtn.classList.add("glow");
     fbChar.innerHTML = charImg(song.name);
+  watchImages();
     fbTitle.textContent = "Now you know!";
     fbTitle.style.color = "#2f9e44";
     fbSub.textContent = "It's " + song.name + "! " + song.clue;
@@ -2168,6 +2195,7 @@ function solveRound() {
 
   const praise = pick(PRAISE_BIG);
   fbChar.innerHTML = charImg(song.name);
+  watchImages();
   fbTitle.textContent = praise + " It's " + song.name + "!";
   fbTitle.style.color = "#2f9e44";
   fbSub.textContent = "🎵 That was " + song.song + "!";
@@ -2246,6 +2274,7 @@ function renderPanelRows() {
     row.appendChild(label);
     rows.appendChild(row);
   });
+  watchImages();
 }
 
 document.getElementById("gearBtn").addEventListener("click", function () {
