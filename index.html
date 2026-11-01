@@ -1388,11 +1388,9 @@ const PRAISE_BIG    = ["You got it!", "Amazing!", "Superstar!", "Wow!", "Fantast
 const PRAISE_GENTLE = ["Good try!", "So close!", "Nice thinking!"];
 
 /* ================= the real songs =================
-   YouTube cannot play here: its player refuses this app's internal address
-   (error 153 — it can't tell who is embedding it), which is the error the
-   song card was showing. So each round plays the official Disney recording
-   from Apple's public 30-second preview links instead: the real voices, no
-   ads, no embedder rules to break. */
+   Each round plays the official recording (Disney, Pixar, Nintendo) —
+   the first 15 seconds of Apple's public music-store preview: the real
+   voices, no ads, nothing for an embedder or origin rule to break. */
 const songCardEl = document.getElementById("songCard");
 const coverIconEl = document.getElementById("coverIcon");
 const coverTextEl = document.getElementById("coverText");
@@ -2406,7 +2404,7 @@ loadSaved();
 setStatus(
   navigator.onLine === false
     ? "You're offline — the tune version plays. Connect to the internet for the real songs, or add your own clip below."
-    : "Each round plays the official Disney recording straight from Apple's music store, so the real voices sing. If a song won't play here, add your own clip of it below."
+    : "Each round plays the official recording straight from Apple's music store, so the real voices sing. If a song won't play here, add your own clip of it below."
 );
 </script>
 </body>
